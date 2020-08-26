@@ -1,92 +1,95 @@
 const { JSDOM } = require("jsdom");
 const axios = require('axios');
-const base = 'https://gamepress.gg/arknights/operator/';
-const operator = 'Nian';
+const base = 'https://gamepress.gg';
+const server = 'na';
+var dataArray = [];
 
-const fetch = async(cell) => {
-    const url = base.concat(operator);
+const yoink = async (opCell, href) => {
+    const url = base.concat(href);
 
     try {
-        // const { data } = await axios.get('https://gamepress.gg/arknights/tools/interactive-operator-list#tags=null##stats');
-        // const dom = new JSDOM(data, {
-        //     runScripts: "dangerously",
-        //     resources: "usable"
-        // });
-        // const cell = dom.window.document.querySelectorAll(`[data-name=${operator}]`)[0];
-
         const { data } = await axios.get(url);
-        const dom = new JSDOM(data, {
+        const opPage = new JSDOM(data, {
             runScripts: "dangerously",
             resources: "usable"
         });
         
-        getStats (cell);
-        getDetails (cell);
-        
-        getSkills (cell, dom);
+        var opObject = {
+            name: opCell.getAttribute("data-name"),
+            icon: opCell.querySelector('.operator-cell .operator-icon a img').getAttribute("src"),
+            stats: getStats (opCell),
+            traits: getTraits (opCell),
+            talents: getTalents (opCell),
+            skills: getSkills (opCell, opPage)
+        };        
 
-        // getOpInfo (dom);
-
+        // console.log (opObject);
+        dataArray.push (opObject);
+        return;
     } catch(error) {
         throw error;
     }
-
-    // try {
-        // const { data } = await axios.get(url);
-        // const dom = new JSDOM(data, {
-        //     runScripts: "dangerously",
-        //     resources: "usable"
-        // });
-        // getOpInfo (dom);
-    // } catch (error) {
-    //     throw error;
-    // }
 };
 
-const getStats = (cell) => {
+const getStats = (opCell) => {
     try {
-        console.log ("Name: ", cell.getAttribute("data-name"));
-        console.log ("Type: ", cell.getAttribute("data-profession"));
-        console.log ("Rarity: ", parseInt(cell.getAttribute("data-rarity")));
-        console.log ("ATK: ", parseInt(cell.getAttribute("data-atk-trust")));
-        console.log ("Cost: ", parseInt(cell.getAttribute("data-dp-cost")));
-        console.log ("Interval: ", parseFloat(cell.getAttribute("data-atk-time")));
-        const icon = cell.querySelector('.operator-cell .operator-icon a img').getAttribute("src");
-        console.log (icon);
+        var stats = {
+            type: opCell.getAttribute("data-profession"),
+            rarity: parseInt(opCell.getAttribute("data-rarity")),
+            hp: parseInt(opCell.getAttribute("data-hp-trust")),
+            atk: parseInt(opCell.getAttribute("data-atk-trust")),
+            def: parseInt(opCell.getAttribute("data-def-trust")),
+            cost: parseInt(opCell.getAttribute("data-dp-cost")),
+            res: parseInt(opCell.getAttribute("data-res")),
+            block: parseInt(opCell.getAttribute("data-block")),
+            interval: parseFloat(opCell.getAttribute("data-atk-time"))
+        };
+
+        return stats;
     } catch(error) {
         console.log("Error: ", error);
     }
 }
 
-const getDetails = (cell) => {
+const getTraits = (opCell) => {
     try {
-        
-        const traits = cell.querySelector('.traits-section').innerHTML.replace(/<center>.*<\/center>|^\s+|\s+$|<(.|\n)*?>/g, '');
-        
-        var talents = [];
-        const talentCells = cell.querySelectorAll('.talents-section .skill-cell');
+        const traits = opCell.querySelector('.traits-section').innerHTML.replace(/<center>.*<\/center>|^\s+|\s+$|<(.|\n)*?>/g, '');
+        // console.log ("Trait(s): ", traits);
 
-        talentCells.forEach(function (talent) {
+        return traits;
+    } catch(error) {
+        console.log("Error: ", error);
+    }
+
+}
+
+const getTalents = (opCell) => {
+    try {
+        var talents = [];
+        const talentCells = opCell.querySelectorAll('.talents-section .skill-cell');
+
+        for (const talent of talentCells) {
+            
             const talentName = talent.querySelector('.skill-title').innerHTML;
             const talentDesc = talent.querySelector('.skill-desc').innerHTML.replace(/^\s+|\s+$|<(.|\n)*?>/g, '');
             talents.push({
                 name: talentName,
                 desc: talentDesc
             });
-        });
-        console.log("Trait(s): ", traits);
-        console.log("Talent(s): ", talents);
+        }
+        
+        return talents;
     } catch(error) {
         console.log("Error: ", error);
     }
 }
 
-const getSkills = (cell, dom) => {
+const getSkills = (opCell, opPage) => {
     try {
 
         var skills = [];
-        const skillCells = cell.querySelectorAll('.skills-section .skills-container .skill-cell');
-        const skillIcons = dom.window.document.querySelectorAll('.skill-section .skill-cell .skill-title-cell a img');
+        const skillCells = opCell.querySelectorAll('.skills-section .skills-container .skill-cell');
+        const skillIcons = opPage.window.document.querySelectorAll('.skill-section .skill-cell .skill-title-cell a img');
         skillCells.forEach(function (skill, i) {
             const skillName = skill.querySelector('.skill-title').innerHTML;
             const skillIcon = skillIcons[i].getAttribute("src");
@@ -111,66 +114,40 @@ const getSkills = (cell, dom) => {
                 activation: skillActivation,
                 duration: skillDuration
             });
-
         });
-        console.log("Skills: ", skills);
+        
+        return skills;
     } catch(error) {
         console.log("Error: ", error);
     }
 }
 
-const getOpInfo = (sauce) => {
-    try {
-        const name = sauce.window.document.querySelector('#page-title h1').innerHTML.replace(/^\s+|\s+$/g, '');
-        const type = sauce.window.document.querySelector('.profession-title').innerHTML.replace(/^\s+|\s+$/g, '');
-        const rarity = sauce.window.document.querySelectorAll('.rarity-cell > img').length;
-
-        const infos = sauce.window.document.querySelectorAll('.sub-title');
-        const talentCells = sauce.window.document.querySelectorAll('.talent-cell');
-
-        var traits;
-        var talents = [];
-
-        infos.forEach(function (field) {
-            if (field.innerHTML.startsWith('Traits')) {
-                traits = field.nextElementSibling.innerHTML.replace(/<small>.*|\*.*|^\s+|\s+$|<(.|\n)*?>/g, '');
-            }
-        });
-
-        talentCells.forEach(function (cell) {
-            const cells = cell.querySelectorAll('.talent-child');
-            const length = cells.length;
-            const talentName = cells[length - 1].querySelector('.talent-title').innerHTML.replace(/^\s+|\s+$/g, '');
-            const talentDesc = cells[length - 1].querySelector('.talent-description').innerHTML.replace(/^\s+|\s+$|<(.|\n)*?>/g, '');
-            // console.log(talentName, ": ", talentDesc);
-            talents.push({name: talentName, desc: talentDesc});
-        });
-        
-        
-        console.log("Name: ", name);
-        console.log("Type: ", type);
-        console.log("Rarity: ", rarity);
-        console.log("Trait(s): ", traits);
-        console.log("Talent(s): ", talents);
-    } catch (error) {
-        console.log("Error: ", error);
-    }
-}
-
-const uwu = async() => {
+const uwu = async () => {
     try {
         const { data } = await axios.get('https://gamepress.gg/arknights/tools/interactive-operator-list#tags=null##stats');
         const dom = new JSDOM(data, {
             runScripts: "dangerously",
             resources: "usable"
         });
-        const cell = dom.window.document.querySelectorAll(`[data-name=${operator}]`)[0];
-        fetch(cell);
+        const opCells = dom.window.document.querySelectorAll(`[data-availserver=${server}][data-rarity="6"][data-profession="Defender"]`);
+        
+        for (const [i, opCell] of opCells.entries()) {
+            process.stdout.write(`Fetching operator ${i + 1} of ${opCells.length} ... `);
+            const href = opCell.querySelector('.operator-cell .operator-title a').getAttribute("href");
+            await yoink(opCell, href);
+            process.stdout.write("complete.\n");
+        }
+
+        // const href = opCells[0].querySelector('.operator-cell .operator-title a').getAttribute("href");
+        // var x = await yoink(opCells[0], href);
+        // console.log(x);
+        // dataArray.push(x);
+        console.log(JSON.stringify(dataArray, null, "\t"));
+
     }catch (error) {
         throw error;
     }
-
+    return;
 }
-
 
 uwu();

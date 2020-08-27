@@ -2,6 +2,7 @@ const { JSDOM } = require("jsdom");
 const axios = require('axios');
 const base = 'https://gamepress.gg';
 const server = 'na';
+const fs = require ('fs');
 var dataArray = [];
 
 const yoink = async (opCell, href) => {
@@ -23,7 +24,6 @@ const yoink = async (opCell, href) => {
             skills: getSkills (opCell, opPage)
         };        
 
-        // console.log (opObject);
         dataArray.push (opObject);
         return;
     } catch(error) {
@@ -31,6 +31,7 @@ const yoink = async (opCell, href) => {
     }
 };
 
+// basic stats of operator at e2 max level & trust
 const getStats = (opCell) => {
     try {
         var stats = {
@@ -51,10 +52,10 @@ const getStats = (opCell) => {
     }
 }
 
+// traits of operator
 const getTraits = (opCell) => {
     try {
         const traits = opCell.querySelector('.traits-section').innerHTML.replace(/<center>.*<\/center>|^\s+|\s+$|<(.|\n)*?>/g, '');
-        // console.log ("Trait(s): ", traits);
 
         return traits;
     } catch(error) {
@@ -63,20 +64,20 @@ const getTraits = (opCell) => {
 
 }
 
+// talents of operator at e2
 const getTalents = (opCell) => {
     try {
         var talents = [];
         const talentCells = opCell.querySelectorAll('.talents-section .skill-cell');
 
-        for (const talent of talentCells) {
-            
+        talentCells.forEach (function (talent) {
             const talentName = talent.querySelector('.skill-title').innerHTML;
             const talentDesc = talent.querySelector('.skill-desc').innerHTML.replace(/^\s+|\s+$|<(.|\n)*?>/g, '');
             talents.push({
                 name: talentName,
                 desc: talentDesc
             });
-        }
+        });
         
         return talents;
     } catch(error) {
@@ -84,12 +85,14 @@ const getTalents = (opCell) => {
     }
 }
 
+// skills of operator at max, m3 if available
 const getSkills = (opCell, opPage) => {
     try {
 
         var skills = [];
         const skillCells = opCell.querySelectorAll('.skills-section .skills-container .skill-cell');
         const skillIcons = opPage.window.document.querySelectorAll('.skill-section .skill-cell .skill-title-cell a img');
+
         skillCells.forEach(function (skill, i) {
             const skillName = skill.querySelector('.skill-title').innerHTML;
             const skillIcon = skillIcons[i].getAttribute("src");
@@ -129,8 +132,10 @@ const uwu = async () => {
             runScripts: "dangerously",
             resources: "usable"
         });
-        const opCells = dom.window.document.querySelectorAll(`[data-availserver=${server}][data-rarity="6"][data-profession="Defender"]`);
-        
+
+        // other params
+        // const opCells = dom.window.document.querySelectorAll(`[data-availserver=${server}][data-rarity="6"][data-profession="Defender"]`);
+        const opCells = dom.window.document.querySelectorAll(`[data-availserver=${server}]`);
         for (const [i, opCell] of opCells.entries()) {
             process.stdout.write(`Fetching operator ${i + 1} of ${opCells.length} ... `);
             const href = opCell.querySelector('.operator-cell .operator-title a').getAttribute("href");
@@ -138,11 +143,14 @@ const uwu = async () => {
             process.stdout.write("complete.\n");
         }
 
-        // const href = opCells[0].querySelector('.operator-cell .operator-title a').getAttribute("href");
-        // var x = await yoink(opCells[0], href);
-        // console.log(x);
-        // dataArray.push(x);
-        console.log(JSON.stringify(dataArray, null, "\t"));
+        const dataJSON = JSON.stringify(dataArray, null, '\t');
+        fs.writeFile('./operators.json', dataJSON, err => {
+            if (err) {
+                console.log ("Error writing to file.");
+            } else {
+                console.log ("Successfully wrote to 'operators.json'.");
+            }
+        });
 
     }catch (error) {
         throw error;

@@ -2,7 +2,7 @@ const { JSDOM } = require("jsdom");
 const axios = require('axios');
 const base = 'https://gamepress.gg';
 const server = 'na';
-const fs = require ('fs');
+const fs = require('fs');
 var dataArray = [];
 
 const yoink = async (opCell, href) => {
@@ -14,19 +14,19 @@ const yoink = async (opCell, href) => {
             runScripts: "dangerously",
             resources: "usable"
         });
-        
+
         var opObject = {
             name: opCell.getAttribute("data-name"),
             icon: opCell.querySelector('.operator-cell .operator-icon a img').getAttribute("src"),
-            stats: getStats (opCell),
-            traits: getTraits (opCell),
-            talents: getTalents (opCell),
-            skills: getSkills (opCell, opPage)
-        };        
+            stats: getStats(opCell),
+            traits: getTraits(opCell),
+            talents: getTalents(opCell),
+            skills: getSkills(opCell, opPage)
+        };
 
-        dataArray.push (opObject);
+        dataArray.push(opObject);
         return;
-    } catch(error) {
+    } catch (error) {
         throw error;
     }
 };
@@ -47,7 +47,7 @@ const getStats = (opCell) => {
         };
 
         return stats;
-    } catch(error) {
+    } catch (error) {
         console.log("Error: ", error);
     }
 }
@@ -55,10 +55,10 @@ const getStats = (opCell) => {
 // traits of operator
 const getTraits = (opCell) => {
     try {
-        const traits = opCell.querySelector('.traits-section').innerHTML.replace(/<center>.*<\/center>|^\s+|\s+$|<(.|\n)*?>/g, '');
+        const traits = opCell.querySelector('.traits-section').innerHTML.replace(/<center>.*<\/center>|<small>.*<\/small>|<pre>.*<\/pre>|^\s+|\s+$|<(.|\n)*?>/g, '');
 
         return traits;
-    } catch(error) {
+    } catch (error) {
         console.log("Error: ", error);
     }
 
@@ -70,7 +70,7 @@ const getTalents = (opCell) => {
         var talents = [];
         const talentCells = opCell.querySelectorAll('.talents-section .skill-cell');
 
-        talentCells.forEach (function (talent) {
+        talentCells.forEach(function (talent) {
             const talentName = talent.querySelector('.skill-title').innerHTML;
             const talentDesc = talent.querySelector('.skill-desc').innerHTML.replace(/^\s+|\s+$|<(.|\n)*?>/g, '');
             talents.push({
@@ -78,9 +78,9 @@ const getTalents = (opCell) => {
                 desc: talentDesc
             });
         });
-        
+
         return talents;
-    } catch(error) {
+    } catch (error) {
         console.log("Error: ", error);
     }
 }
@@ -118,9 +118,9 @@ const getSkills = (opCell, opPage) => {
                 duration: skillDuration
             });
         });
-        
+
         return skills;
-    } catch(error) {
+    } catch (error) {
         console.log("Error: ", error);
     }
 }
@@ -146,13 +146,13 @@ const uwu = async () => {
         const dataJSON = JSON.stringify(dataArray, null, '\t');
         fs.writeFile('./operators.json', dataJSON, err => {
             if (err) {
-                console.log ("Error writing to file.");
+                console.log("Error writing to file.");
             } else {
-                console.log ("Successfully wrote to 'operators.json'.");
+                console.log("Successfully wrote to 'operators.json'.");
             }
         });
 
-    }catch (error) {
+    } catch (error) {
         throw error;
     }
     return;
